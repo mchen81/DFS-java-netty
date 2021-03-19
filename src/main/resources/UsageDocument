@@ -1,0 +1,27 @@
+Testing:
+
+1. create a mock dir and file (see FileProcessUtilTest.java)
+    1.1 mkfile -n 30m TestFiles/file.txt <- create a 30MB file, could be k/g/m
+
+2. change properties in src/main/java/edu/usfca/cs/dfs/utils/Constant.java
+    2.1 You can change FILEPATH_PREFIX to where you want, but it should be returned when deploying on orions
+        2.1.1 suggested FILEPATH_PREFIX = "TestFiles/"
+    2.2 CHUNK_SIZE and test file size could be smaller when testing, it can lower your system's burden
+
+3. run server:
+    run DFSApp with args: server [port for clients to connect] [port for nodes to connect]
+4. run storage node:
+    run DFSApp with args: storage [server's ip(localhost)] [server's port] [node name(could be any)] [node port for client to connect]
+5. run client:
+    run DFSApp with args: client [host's ip(localhost)] [host's port]
+6. run fuse client:
+    Example: java -cp dfs.jar edu.usfca.cs.dfs.DFSApp fuse orion01 8050 ~/BigData/FakeDownloads4
+    fuse [host's ip(localhost)] [host's port] [mount point]
+
+6. supported client operation:
+    1. -nodes
+    2. -save [local file] [cluster file position]
+        2.1 e.g. -save TestFiles/file.txt / <-- save file.txt to Constant.FILEPATH_PREFIX/file.txt
+    3. -retrieve [file in cluster] [new name of the file]
+        3.1 e.g. -retrieve file.txt TestFiles/newFile.txt <-- retrieve file.txt from Constant.FILEPATH_PREFIX/
+        3.2 current retrieve function is buggy :(

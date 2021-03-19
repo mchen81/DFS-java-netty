@@ -1,0 +1,237 @@
+syntax = "proto3";
+option java_package = "edu.usfca.cs.dfs.proto";
+
+message Client2Server {
+    oneof msg {
+        StoreFileRequest storeFileRequest = 1;
+        Command command = 2;
+        RetrieveFileRequest retrieveFileRequest = 3;
+    }
+
+    message StoreFileRequest {
+        FileMetadata metadata = 3;
+    }
+
+    message Command {
+        string command = 1;
+        string text = 2;
+    }
+
+    message RetrieveFileRequest {
+        string filePath = 1;
+        int32 chunkNumber = 2;
+        bool isFirstChunk = 3;
+
+        bool isFromFuse = 4;
+    }
+
+}
+
+message Server2Client {
+    oneof msg {
+        StoreFileResponse storeFileResponse = 1;
+        CommandResponse commandResponse = 2;
+        RetrieveFileResponse retrieveFileResponse = 3;
+    }
+
+    message StoreFileResponse {
+        bool success = 1;
+        string failReason = 2;
+        string filePath = 3;
+        repeated ChunkPlacementDecision chunkPlacement = 5;
+    }
+
+    message CommandResponse {
+        oneof msg {
+            ActiveNodes activeNodes = 1;
+            ListDirectories listDirectories = 2;
+            PosixLs posixLs = 3;
+        }
+        message ListDirectories {
+            string directories = 1;
+        }
+        message ActiveNodes {
+            string nodesInfo = 1;
+        }
+        message PosixLs {
+            repeated string fileNames = 1;
+        }
+    }
+
+    message RetrieveFileResponse {
+        bool success = 1;
+        FileMetadata metadata = 2;
+        repeated ChunkPossiblePosition chunkPossiblePosition = 3;
+        bool isFirstChunkResponse = 4;
+        string filePath = 5;
+
+        message ChunkPossiblePosition {
+            int32 chunkId = 1;
+            repeated string host = 2;
+        }
+    }
+
+}
+
+message Server2Node {
+    oneof msg {
+        ReplicaPossiblePosition replicaPossiblePosition = 1;
+        ReplicaRecovery replicaRecovery = 2;
+        FileDeletion fileDeletion = 3;
+
+    }
+    message FileDeletion{
+        string filepath = 1;
+    }
+
+    message ReplicaPossiblePosition {
+        string filePath = 1;
+        int32 chunkId = 2;
+        repeated string host = 3;
+    }
+
+    message ReplicaRecovery {
+        string filepath = 1;
+        string destination = 2;
+    }
+
+}
+
+message ChunkPlacementDecision {
+    int32 chunkId = 1;
+    string mainNode = 2;
+    string replica1 = 3;
+    string replica2 = 4;
+}
+
+
+message Client2Node {
+
+    oneof msg {
+        StoreChunkRequest storeChunkRequest = 1;
+        RetrieveChunkRequest retrieveChunkRequest = 2;
+        bool retrieveStatistic = 3;
+    }
+
+    message StoreChunkRequest {
+        ChunkMetadata metadata = 1;
+        bytes chunkBytes = 2;
+    }
+
+    message RetrieveChunkRequest {
+        string filePath = 1;
+        int32 chunkId = 2;
+        bool chunkMetadataOnly = 3;
+    }
+}
+
+message Node2Node {
+    oneof msg {
+        ChunkTransfer chunkTransfer = 1;
+        ChunkRequest chunkRequest = 2;
+    }
+
+    message ChunkTransfer {
+        ChunkMetadata metadata = 1;
+        bytes chunkData = 2;
+        DataType datatype = 3;
+    }
+
+    message ChunkRequest {
+        string filepath = 1;
+        int32 chunkId = 2;
+    }
+
+    enum DataType {
+        REPLICA_1 = 0;
+        REPLICA_2 = 1;
+        REPAIR = 2;
+        RECOVERY = 3;
+    }
+}
+
+message Node2Client {
+
+    oneof msg {
+        RetrieveChunkRespond retrieveChunkRespond = 1;
+        int32 requestNumber = 2;
+    }
+
+    message RetrieveChunkRespond {
+        bool hasFile = 1;
+        ChunkMetadata metadata = 2;
+        bytes chunk = 3;
+        bool metadataOnly = 4;
+    }
+
+}
+
+message Node2Server {
+    oneof msg {
+        Registration registration = 1;
+        Heartbeat heartbeat = 2;
+        Notification notification = 3;
+        RetrieveChunkRequest retrieveChunkRequest = 4;
+    }
+
+    message Registration {
+        string hostName = 1;
+        int32 hostPort = 2;
+    }
+
+    message Heartbeat {
+        int64 freeSpace = 1;
+        int64 processedNumber = 2;
+    }
+
+    message Notification {
+        string text = 1;
+        NotificationType type = 2;
+        enum NotificationType {
+            FILE_STORED = 0;
+        }
+    }
+
+    message RetrieveChunkRequest {
+        string filePath = 1;
+        int32 chunkId = 2;
+        string chunkPath = 3;
+    }
+}
+
+message DFSMessagesWrapper {
+    oneof msg {
+        Client2Server client2server = 1;
+        Server2Client server2Client = 2;
+        Node2Server node2Server = 3;
+        Node2Client node2Client = 4;
+        Client2Node client2Node = 5;
+        Node2Node node2Node = 6;
+        Server2Node server2Node = 7;
+    }
+}
+
+message FileMetadata {
+    string filePath = 1;
+    string checksum = 2;
+    int32 chunkNumber = 3;
+    int64 size = 4;
+}
+
+message ChunkMetadata {
+    string filePath = 1;
+    int32 chunkId = 3;
+    int64 size = 4;
+    string checksum = 5;
+    ChunkPlacementDecision placement = 6;
+    int32 chunkTotalNumber = 7;
+    //for posix
+    int32 mode = 8;
+    int64 wholeFileSize = 9;
+}
+
+enum Status {
+    OK = 0;
+    FAIL = 1;
+
+}
